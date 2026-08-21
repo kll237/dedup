@@ -1,0 +1,16 @@
+# Build artifacts
+/dedup
+/dedup.exe
+*.exe
+*.out
+dist/
+
+# Editor / OS
+.idea/
+.vscode/
+.DS_Store
+
+# Test artifacts / generated reports (local only)
+_e2e*/
+report.json
+report.html
