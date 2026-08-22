@@ -107,10 +107,12 @@ main.go          命令行解析、流程编排、删除决策
 
 ## 技术博客 / 实现解析
 
-想了解背后的算法与工程取舍，可以看：
+想了解背后的算法与工程取舍，可以看（在线版 ↓ / 仓库版在 `docs/`）：
 
-- [感知哈希（dHash）如何识别"相似图片"](docs/blog-dhash.md) —— 灰度、缩放、差分、汉明距离、阈值调参，以及 dHash 在"纯色/均匀图"上退化的坑。
-- [为什么删除要用回收站而不是 `rm`](docs/blog-recyclebin.md) —— `SHFileOperationW` 的 `FOF_ALLOWUNDO` 机制、返回码为 2 实则成功的怪癖、跨平台方案与"绝不永久删除"的安全设计。
+- 🌐 [感知哈希（dHash）如何识别"相似图片"](https://kll237.github.io/dedup/blog-dhash.html) · [仓库版](docs/blog-dhash.md)
+  —— 灰度、缩放、差分、汉明距离、阈值调参，以及 dHash 在"纯色/均匀图"上退化的坑。
+- 🌐 [为什么删除要用回收站而不是 `rm`](https://kll237.github.io/dedup/blog-recyclebin.html) · [仓库版](docs/blog-recyclebin.md)
+  —— `SHFileOperationW` 的 `FOF_ALLOWUNDO` 机制、返回码为 2 实则成功的怪癖、跨平台方案与"绝不永久删除"的安全设计。
 
 ## License
 [MIT](LICENSE)
