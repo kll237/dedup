@@ -1,6 +1,0 @@
-type,group,path,size_bytes,sha256,phash,hamming_distance
-exact,1,D:\workBuddy\zwrw1\git1\dedup\demo\input\note_a.txt,34,3e71900ba8b098e4075d9dc1e878a39501d29987bb4687a75841446b415a59ee,,
-exact,1,D:\workBuddy\zwrw1\git1\dedup\demo\input\note_b.txt,34,3e71900ba8b098e4075d9dc1e878a39501d29987bb4687a75841446b415a59ee,,
-exact,1,D:\workBuddy\zwrw1\git1\dedup\demo\input\sub\sub_note_c.txt,34,3e71900ba8b098e4075d9dc1e878a39501d29987bb4687a75841446b415a59ee,,
-similar,1,D:\workBuddy\zwrw1\git1\dedup\demo\input\a_original.jpg,25728,,156262268f593d9e,0
-similar,1,D:\workBuddy\zwrw1\git1\dedup\demo\input\b_near.jpg,38243,,13626626ac592d9e,7
