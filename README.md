@@ -83,6 +83,28 @@ dedup -path "D:/Photos" -delete-similar -yes
 | `-yes` | 跳过删除前的二次确认 | `false` |
 | `-dry-run` | 仅预览待删除文件，不实际删除 | `false` |
 
+## 效果演示
+
+下面这些截图来自**真实 CLI 输出**（样例数据在 `docs/assets/` 同一次运行中生成）。
+
+### 输入样例图片
+
+两张图只是亮度与位置略有变化，`red_circle.png` 是明显不同的图：
+
+![输入样例图片](docs/assets/demo-input-images.png)
+
+### 终端扫描报告
+
+同时检测精确重复（3 个 txt 文件内容相同）与相似图片（2 张 sunset 图被归为一组）：
+
+![终端扫描报告](docs/assets/demo-terminal-report.png)
+
+### 删除安全确认（dry-run 预览）
+
+`-delete-similar -dry-run` 会先列出将被移入回收站的副本，并显示实时进度条：
+
+![删除安全确认](docs/assets/demo-delete-confirm.png)
+
 ## 架构
 
 ```
