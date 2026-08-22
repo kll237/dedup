@@ -79,13 +79,28 @@ func formatStats(s result.Stats) string {
 	var b strings.Builder
 	b.WriteString("<p>扫描文件数: <b>")
 	b.WriteString(itoa(s.FilesScanned))
-	b.WriteString("</b> · 精确重复组: <b>")
+	b.WriteString("</b> (共 ")
+	b.WriteString(human(s.BytesScanned))
+	b.WriteString(") · 精确重复组: <b>")
 	b.WriteString(itoa(s.ExactGroups))
 	b.WriteString("</b> · 可节省: <b>")
 	b.WriteString(human(s.WastedBytes))
 	b.WriteString("</b> · 相似图片组: <b>")
 	b.WriteString(itoa(s.SimilarGroups))
 	b.WriteString("</b></p>")
+	if len(s.ExtStats) > 0 {
+		b.WriteString("<details><summary>按扩展名统计</summary><table><tr><th>扩展名</th><th>文件数</th><th>总大小</th></tr>")
+		for _, e := range s.ExtStats {
+			b.WriteString("<tr><td>")
+			b.WriteString(html.EscapeString(e.Ext))
+			b.WriteString("</td><td>")
+			b.WriteString(itoa(e.Count))
+			b.WriteString("</td><td>")
+			b.WriteString(human(e.Bytes))
+			b.WriteString("</td></tr>")
+		}
+		b.WriteString("</table></details>")
+	}
 	return b.String()
 }
 

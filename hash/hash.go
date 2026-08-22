@@ -29,8 +29,9 @@ func SHA256File(path string) (string, error) {
 
 // FindExact groups files by content hash using a bounded worker pool.
 // Files that cannot be read are skipped (and therefore never reported as
-// duplicates).
-func FindExact(files []result.FileRef, workers int) []result.ExactGroup {
+// duplicates). onProgress, if non-nil, is called once per hashed file with
+// (done, total) so callers can render a progress bar.
+func FindExact(files []result.FileRef, workers int, onProgress func(done, total int)) []result.ExactGroup {
 	if workers <= 0 {
 		workers = runtime.NumCPU()
 	}
@@ -76,7 +77,12 @@ func FindExact(files []result.FileRef, workers int) []result.ExactGroup {
 		files []result.FileRef
 	}
 	m := make(map[string]*acc)
+	done := 0
 	for r := range results {
+		done++
+		if onProgress != nil {
+			onProgress(done, len(files))
+		}
 		a, ok := m[r.hash]
 		if !ok {
 			a = &acc{size: r.f.Size}

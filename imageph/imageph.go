@@ -83,7 +83,9 @@ func Hamming(a, b uint64) int {
 // FindSimilar groups images whose perceptual hashes differ by at most
 // threshold bits. It uses a worker pool to hash files, then a union-find
 // over pairwise Hamming distances (O(n^2), fine for typical photo sets).
-func FindSimilar(files []result.FileRef, threshold int, workers int) []result.SimilarGroup {
+// onProgress, if non-nil, is called once per processed file with
+// (done, total) so callers can render a progress bar.
+func FindSimilar(files []result.FileRef, threshold int, workers int, onProgress func(done, total int)) []result.SimilarGroup {
 	if workers <= 0 {
 		workers = runtime.NumCPU()
 	}
@@ -131,7 +133,12 @@ func FindSimilar(files []result.FileRef, threshold int, workers int) []result.Si
 	refs := make([]result.ImageRef, len(files))
 	hashes := make([]uint64, len(files))
 	ok := make([]bool, len(files))
+	done := 0
 	for r := range results {
+		done++
+		if onProgress != nil {
+			onProgress(done, len(files))
+		}
 		if r.ok {
 			refs[r.i] = r.ref
 			hashes[r.i] = r.hash

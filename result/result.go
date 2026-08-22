@@ -27,10 +27,19 @@ type SimilarGroup struct {
 	Files          []ImageRef
 }
 
+// ExtStat summarises files sharing the same extension.
+type ExtStat struct {
+	Ext   string
+	Count int
+	Bytes int64
+}
+
 // Stats summarises a scan run.
 type Stats struct {
 	FilesScanned  int
+	BytesScanned  int64
 	ExactGroups   int
 	WastedBytes   int64
 	SimilarGroups int
+	ExtStats      []ExtStat
 }

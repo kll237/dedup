@@ -2,6 +2,7 @@
 package report
 
 import (
+	"encoding/csv"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -43,9 +44,15 @@ func Render(w io.Writer, r Report, format Format) error {
 
 func renderText(w io.Writer, r Report) error {
 	s := r.Stats
-	fmt.Fprintf(w, "扫描文件数: %d\n", s.FilesScanned)
+	fmt.Fprintf(w, "扫描文件数: %d  总大小: %s\n", s.FilesScanned, human(s.BytesScanned))
 	fmt.Fprintf(w, "精确重复组: %d  (可节省 %s)\n", s.ExactGroups, human(s.WastedBytes))
 	fmt.Fprintf(w, "相似图片组: %d\n", s.SimilarGroups)
+	if len(s.ExtStats) > 0 {
+		fmt.Fprintln(w, "\n===== 按扩展名统计 =====")
+		for _, e := range s.ExtStats {
+			fmt.Fprintf(w, "  %-10s 文件 %6d  共 %s\n", e.Ext, e.Count, human(e.Bytes))
+		}
+	}
 	fmt.Fprintln(w)
 
 	if len(r.Exact) > 0 {
@@ -77,6 +84,53 @@ func shortHash(h string) string {
 		return h
 	}
 	return h[:8] + "…" + h[len(h)-8:]
+}
+
+// WriteCSV exports the duplicate / similar findings as a flat CSV table,
+// suitable for spreadsheets or further scripting. Columns:
+// type, group, path, size_bytes, sha256, phash, hamming_distance.
+func WriteCSV(w io.Writer, r Report) error {
+	cw := csv.NewWriter(w)
+	if err := cw.Write([]string{"type", "group", "path", "size_bytes", "sha256", "phash", "hamming_distance"}); err != nil {
+		return err
+	}
+	for gi, g := range r.Exact {
+		for _, f := range g.Files {
+			if err := cw.Write([]string{"exact", itoa(gi + 1), f.Path, fmt.Sprintf("%d", f.Size), g.Hash, "", ""}); err != nil {
+				return err
+			}
+		}
+	}
+	for gi, g := range r.Similar {
+		rep := g.Representative
+		for _, f := range g.Files {
+			row := []string{
+				"similar",
+				itoa(gi + 1),
+				f.Path,
+				fmt.Sprintf("%d", f.Size),
+				"",
+				fmt.Sprintf("%016x", f.Hash),
+				itoa(hamming64(rep, f.Hash)),
+			}
+			if err := cw.Write(row); err != nil {
+				return err
+			}
+		}
+	}
+	cw.Flush()
+	return cw.Error()
+}
+
+// hamming64 counts differing bits between two 64-bit values.
+func hamming64(a, b uint64) int {
+	x := a ^ b
+	c := 0
+	for x != 0 {
+		c++
+		x &= x - 1
+	}
+	return c
 }
 
 func human(b int64) string {

@@ -4,10 +4,12 @@
 package main
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -33,6 +35,7 @@ func main() {
 		mode       = flag.String("mode", "both", "扫描模式: exact(精确去重) | image(相似图片) | both")
 		format     = flag.String("format", "text", "输出格式: text | json | html")
 		outPath    = flag.String("out", "", "报告输出文件，默认 stdout")
+		csvPath    = flag.String("csv", "", "导出结果到 CSV 文件(便于表格/脚本处理)")
 		minSize    = flag.String("min-size", "0", "最小文件大小，如 1KB / 2MB")
 		maxSize    = flag.String("max-size", "0", "最大文件大小，如 10MB")
 		threshold  = flag.Int("threshold", 10, "相似图片汉明距离阈值(0-64)，越小越严格")
@@ -40,6 +43,8 @@ func main() {
 		skipHidden = flag.Bool("skip-hidden", true, "跳过隐藏文件和目录")
 		ignore     = flag.String("ignore", ".git,.node_modules", "跳过的目录名(逗号分隔)")
 		deleteDup  = flag.Bool("delete", false, "把精确重复的额外副本移入回收站(保留每组一个)")
+		deleteSim  = flag.Bool("delete-similar", false, "把相似图片的额外副本移入回收站(保留每组代表图，需二次确认)")
+		yesFlag    = flag.Bool("yes", false, "跳过删除前的二次确认(请确认你确实要删除)")
 		dryRun     = flag.Bool("dry-run", false, "只预览将要删除的文件，不实际删除")
 		showVer    = flag.Bool("version", false, "打印版本并退出")
 	)
@@ -51,7 +56,7 @@ func main() {
 	flag.Parse()
 
 	if *showVer {
-		fmt.Println("dedup 0.1.0")
+		fmt.Println("dedup 0.2.0")
 		return
 	}
 
@@ -99,15 +104,26 @@ func main() {
 
 	rep := report.Report{}
 	rep.Stats.FilesScanned = len(files)
+	rep.Stats.ExtStats = collectExtStats(files, &rep.Stats.BytesScanned)
 
 	switch *mode {
 	case "exact":
-		rep.Exact = hash.FindExact(files, *workers)
+		pb := newProgressBar(len(files), "计算内容哈希")
+		rep.Exact = hash.FindExact(files, *workers, pb.tick)
+		pb.finish()
 	case "image":
-		rep.Similar = imageph.FindSimilar(onlyImages(files, imageExts), *threshold, *workers)
+		imgs := onlyImages(files, imageExts)
+		pb := newProgressBar(len(imgs), "计算感知哈希")
+		rep.Similar = imageph.FindSimilar(imgs, *threshold, *workers, pb.tick)
+		pb.finish()
 	case "both":
-		rep.Exact = hash.FindExact(files, *workers)
-		rep.Similar = imageph.FindSimilar(onlyImages(files, imageExts), *threshold, *workers)
+		epb := newProgressBar(len(files), "计算内容哈希")
+		rep.Exact = hash.FindExact(files, *workers, epb.tick)
+		epb.finish()
+		imgs := onlyImages(files, imageExts)
+		ipb := newProgressBar(len(imgs), "计算感知哈希")
+		rep.Similar = imageph.FindSimilar(imgs, *threshold, *workers, ipb.tick)
+		ipb.finish()
 	default:
 		fatal(fmt.Errorf("未知模式: %s (应为 exact|image|both)", *mode))
 	}
@@ -118,37 +134,26 @@ func main() {
 	}
 	rep.Stats.SimilarGroups = len(rep.Similar)
 
-	// Deletion (safe: into recycle bin, keep one copy per exact group).
+	// Deletion (safe: into recycle bin, keep one copy per group).
 	if *deleteDup {
-		var toDelete []string
-		for _, g := range rep.Exact {
-			for i := 1; i < len(g.Files); i++ { // index 0 is kept (sorted by path)
-				toDelete = append(toDelete, g.Files[i].Path)
-			}
+		deleteExact(rep.Exact, *dryRun, *yesFlag)
+	}
+	if *deleteSim {
+		deleteSimilar(rep.Similar, *dryRun, *yesFlag)
+	}
+
+	// CSV export (independent of the human-readable report).
+	if *csvPath != "" {
+		f, err := os.Create(*csvPath)
+		if err != nil {
+			fatal(err)
 		}
-		// Only keep files that still exist, so a missing path can't abort the
-		// whole batch (SHFileOperation fails entirely if any source is missing).
-		existing := toDelete[:0]
-		for _, p := range toDelete {
-			if _, err := os.Stat(p); err == nil {
-				existing = append(existing, p)
-			}
+		if err := report.WriteCSV(f, rep); err != nil {
+			f.Close()
+			fatal(err)
 		}
-		toDelete = existing
-		if len(toDelete) == 0 {
-			fmt.Fprintln(os.Stderr, "没有需要删除的重复文件。")
-		} else if *dryRun {
-			fmt.Fprintln(os.Stderr, "[dry-run] 以下重复文件将被移入回收站(保留每组第一个):")
-			for _, p := range toDelete {
-				fmt.Fprintf(os.Stderr, "  - %s\n", p)
-			}
-		} else {
-			fmt.Fprintf(os.Stderr, "即将把 %d 个文件移入回收站...\n", len(toDelete))
-			if err := trash.MoveToTrash(toDelete); err != nil {
-				fatal(fmt.Errorf("删除失败: %w", err))
-			}
-			fmt.Fprintf(os.Stderr, "已移入回收站 %d 个文件。\n", len(toDelete))
-		}
+		f.Close()
+		fmt.Fprintf(os.Stderr, "已导出 CSV: %s\n", *csvPath)
 	}
 
 	var w = os.Stdout
@@ -163,6 +168,135 @@ func main() {
 	if err := report.Render(w, rep, report.Format(*format)); err != nil {
 		fatal(err)
 	}
+}
+
+// collectExtStats tallies file counts and bytes per extension and records the
+// grand total into totalBytes. The returned slice is sorted by total bytes
+// descending.
+func collectExtStats(files []result.FileRef, totalBytes *int64) []result.ExtStat {
+	type acc struct {
+		count int
+		bytes int64
+	}
+	m := map[string]*acc{}
+	for _, f := range files {
+		ext := strings.ToLower(filepath.Ext(f.Path))
+		if ext == "" {
+			ext = "(无扩展名)"
+		}
+		a, ok := m[ext]
+		if !ok {
+			a = &acc{}
+			m[ext] = a
+		}
+		a.count++
+		a.bytes += f.Size
+		*totalBytes += f.Size
+	}
+	out := make([]result.ExtStat, 0, len(m))
+	for ext, a := range m {
+		out = append(out, result.ExtStat{Ext: ext, Count: a.count, Bytes: a.bytes})
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].Bytes > out[j].Bytes })
+	return out
+}
+
+// deleteExact moves every duplicate (beyond the first per group) into the
+// recycle bin.
+func deleteExact(groups []result.ExactGroup, dryRun, yes bool) {
+	var toDelete []string
+	for _, g := range groups {
+		for i := 1; i < len(g.Files); i++ { // index 0 is kept (sorted by path)
+			toDelete = append(toDelete, g.Files[i].Path)
+		}
+	}
+	toDelete = keepExisting(toDelete)
+	if len(toDelete) == 0 {
+		fmt.Fprintln(os.Stderr, "没有需要删除的重复文件。")
+		return
+	}
+	if dryRun {
+		fmt.Fprintln(os.Stderr, "[dry-run] 以下重复文件将被移入回收站(保留每组第一个):")
+		for _, p := range toDelete {
+			fmt.Fprintf(os.Stderr, "  - %s\n", p)
+		}
+		return
+	}
+	fmt.Fprintln(os.Stderr, "以下重复文件将被移入回收站(保留每组第一个):")
+	for _, p := range toDelete {
+		fmt.Fprintf(os.Stderr, "  - %s\n", p)
+	}
+	if !yes {
+		if !confirm("确认将上述重复副本移入回收站？(可在回收站找回)") {
+			fmt.Fprintln(os.Stderr, "已取消。")
+			return
+		}
+	}
+	if err := trash.MoveToTrash(toDelete); err != nil {
+		fatal(fmt.Errorf("删除失败: %w", err))
+	}
+	fmt.Fprintf(os.Stderr, "已移入回收站 %d 个文件。\n", len(toDelete))
+}
+
+// deleteSimilar moves every similar image (beyond the representative per
+// group) into the recycle bin. Similar images are not byte-identical, so a
+// confirmation prompt is always shown unless -yes is passed.
+func deleteSimilar(groups []result.SimilarGroup, dryRun, yes bool) {
+	var toDelete []string
+	for _, g := range groups {
+		for i := 1; i < len(g.Files); i++ { // index 0 is the representative
+			toDelete = append(toDelete, g.Files[i].Path)
+		}
+	}
+	toDelete = keepExisting(toDelete)
+	if len(toDelete) == 0 {
+		fmt.Fprintln(os.Stderr, "没有需要删除的相似图片副本。")
+		return
+	}
+	fmt.Fprintln(os.Stderr, "[相似图片] 以下副本将被移入回收站(保留每组代表图):")
+	for _, p := range toDelete {
+		fmt.Fprintf(os.Stderr, "  - %s\n", p)
+	}
+	if dryRun {
+		fmt.Fprintln(os.Stderr, "[dry-run] 仅预览，未实际删除。")
+		return
+	}
+	if !yes {
+		if !confirm("确认将上述相似副本移入回收站？相似图片并非完全相同，删除前请确认(可在回收站找回)") {
+			fmt.Fprintln(os.Stderr, "已取消。")
+			return
+		}
+	}
+	if err := trash.MoveToTrash(toDelete); err != nil {
+		fatal(fmt.Errorf("删除失败: %w", err))
+	}
+	fmt.Fprintf(os.Stderr, "已移入回收站 %d 个相似图片副本。\n", len(toDelete))
+}
+
+// keepExisting drops paths that no longer exist, so a single missing file
+// cannot abort the entire recycle-bin batch (SHFileOperation fails entirely
+// if any source path is missing).
+func keepExisting(paths []string) []string {
+	out := paths[:0]
+	for _, p := range paths {
+		if _, err := os.Stat(p); err == nil {
+			out = append(out, p)
+		}
+	}
+	return out
+}
+
+// confirm asks the user a yes/no question on stderr. It returns true only for
+// an explicit "y"/"yes". End-of-input is treated as "no" (safe default).
+func confirm(prompt string) bool {
+	fmt.Fprintf(os.Stderr, "%s [y/N]: ", prompt)
+	r := bufio.NewReader(os.Stdin)
+	line, err := r.ReadString('\n')
+	if err != nil {
+		return false
+	}
+	line = strings.TrimSpace(strings.ToLower(line))
+	return line == "y" || line == "yes"
 }
 
 func onlyImages(files []result.FileRef, exts []string) []result.FileRef {

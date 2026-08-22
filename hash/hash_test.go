@@ -28,7 +28,7 @@ func TestFindExact(t *testing.T) {
 		{Path: b, Size: 11},
 		{Path: c, Size: 9},
 	}
-	groups := FindExact(files, 2)
+	groups := FindExact(files, 2, nil)
 	if len(groups) != 1 {
 		t.Fatalf("expected 1 group, got %d", len(groups))
 	}

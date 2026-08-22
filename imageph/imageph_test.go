@@ -65,7 +65,7 @@ func TestPerceptualHashSimilar(t *testing.T) {
 		t.Fatalf("small modification should stay near-identical, hamming=%d", d)
 	}
 	files := []result.FileRef{{Path: p1, Size: 1}, {Path: p2, Size: 1}}
-	groups := FindSimilar(files, 10, 2)
+	groups := FindSimilar(files, 10, 2, nil)
 	if len(groups) != 1 {
 		t.Fatalf("expected 1 similar group, got %d", len(groups))
 	}
@@ -91,7 +91,7 @@ func TestFindSimilarDistinct(t *testing.T) {
 	h1, _ := PerceptualHash(p1)
 	h2, _ := PerceptualHash(p2)
 	t.Logf("h1=%016x h2=%016x hamming=%d", h1, h2, Hamming(h1, h2))
-	groups := FindSimilar(files, 5, 2)
+	groups := FindSimilar(files, 5, 2, nil)
 	if len(groups) != 0 {
 		t.Fatalf("left->right vs right->left gradient should not be similar, got %d groups", len(groups))
 	}
