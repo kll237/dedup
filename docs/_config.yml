@@ -1,0 +1,6 @@
+title: dedup 技术博客
+description: 本地文件去重 / 相似图片查找 CLI 的实现解析
+markdown: kramdown
+exclude:
+  - Gemfile
+  - Gemfile.lock

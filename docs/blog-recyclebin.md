@@ -1,3 +1,7 @@
+---
+title: 为什么"删除"要用回收站而不是 rm
+---
+
 # 为什么"删除"要用回收站而不是 `rm`
 
 > 本文对应 [dedup](https://github.com/kll237/dedup) 项目里 `trash` 包的实现。

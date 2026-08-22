@@ -1,3 +1,7 @@
+---
+title: 用感知哈希（dHash）识别"相似图片"
+---
+
 # 用感知哈希（dHash）识别"相似图片"
 
 > 本文对应 [dedup](https://github.com/kll237/dedup) 项目里 `imageph` 包的实现。
