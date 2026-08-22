@@ -85,25 +85,94 @@ dedup -path "D:/Photos" -delete-similar -yes
 
 ## 效果演示
 
-下面这些截图来自**真实 CLI 输出**（样例数据在 `docs/assets/` 同一次运行中生成）。
+> 全部截图与输出均来自**真实运行**：样例输入是真实照片（Lorem Picsum）+ 真实重复文本，二进制是仓库里 `dedup` 真实跑出来的结果，**可复现**（见末尾命令）。
 
-### 输入样例图片
+### 1) 输入样例（真实照片）
 
-两张图只是亮度与位置略有变化，`red_circle.png` 是明显不同的图：
+三张均为真实照片：`a_original.jpg` 与 `b_near.jpg` 是同一张图的轻微缩放 + 提亮（近重复），`c_different.jpg` 是另一张不同照片：
 
-![输入样例图片](docs/assets/demo-input-images.png)
+![输入样例图片（真实照片）](docs/assets/demo-input-photos.png)
 
-### 终端扫描报告
+### 2) 终端扫描报告（真实输出，原样截取）
 
-同时检测精确重复（3 个 txt 文件内容相同）与相似图片（2 张 sunset 图被归为一组）：
+```text
+扫描文件数: 8  总大小: 89.25 KB
+精确重复组: 1  (可节省 68 B)
+相似图片组: 1
 
-![终端扫描报告](docs/assets/demo-terminal-report.png)
+===== 按扩展名统计 =====
+  .jpg  文件 3  共 89.12 KB
+  .txt  文件 3  共 102 B
+  .md   文件 1  共 19 B
+  .log  文件 1  共 13 B
 
-### 删除安全确认（dry-run 预览）
+===== 精确重复 (按内容哈希) =====
+[1] 哈希 3e71900b…415a59ee  单文件 34 B  副本 3  可节省 68 B
+    - …\demo\input\note_a.txt
+    - …\demo\input\note_b.txt
+    - …\demo\input\sub\sub_note_c.txt
 
-`-delete-similar -dry-run` 会先列出将被移入回收站的副本，并显示实时进度条：
+===== 相似图片 (感知哈希) =====
+[1] 代表指纹 156262268f593d9e  张数 2
+    - …\demo\input\a_original.jpg  (25.12 KB)  156262268f593d9e
+    - …\demo\input\b_near.jpg     (37.35 KB)  13626626ac592d9e
+```
 
-![删除安全确认](docs/assets/demo-delete-confirm.png)
+`b_near.jpg` 与原图汉明距离仅 7（默认阈值 10 内），被判为相似；`c_different.jpg` 汉明距离很大，被正确排除。
+
+### 3) 安全删除预览 `-delete-similar -dry-run`（真实输出）
+
+```text
+[相似图片] 以下副本将被移入回收站(保留每组代表图):
+  - …\demo\input\b_near.jpg
+[dry-run] 仅预览，未实际删除。
+```
+
+运行时会在 stderr 打印实时进度条（不影响 stdout 报告）：
+
+```text
+计算内容哈希  [############################] 8/8 100%
+计算感知哈希  [############################] 3/3 100%
+```
+
+### 4) HTML 报告（真实产物，含真实缩略图）—— 可直接截图
+
+`dedup -format html` 生成的 `demo/output/report.html` **内嵌了真实图片缩略图（base64）**。用浏览器打开它即可截图，作为真实效果证据：
+
+```bash
+dedup -path demo/input -mode both -format html -out demo/output/report.html
+```
+
+完整真实产物都在仓库 `demo/output/` / `demo/`：
+
+| 文件 | 说明 |
+|------|------|
+| `demo/output/report.html` | 真实 HTML 报告（带真实缩略图，浏览器打开即可截图） |
+| `demo/output/report.csv` | 真实 CSV 导出 |
+| `demo/output/stdout.txt` | 上面终端报告的完整原文 |
+| `demo/output/delete_similar_preview.txt` | 删除预览原文 |
+| `demo/TEST_OUTPUT.txt` | `go test -v ./...` 真实测试通过输出 |
+
+### 单元测试（真实证据）
+
+```text
+ok  	dedup/hash      (cached)
+ok  	dedup/imageph   (cached)
+ok  	dedup/report    0.165s
+ok  	dedup/scan      (cached)
+```
+
+完整 9 个用例输出见 `demo/TEST_OUTPUT.txt`；CI 在每次 push 时自动运行。
+
+### 如何复现
+
+```bash
+cd demo
+bash run.sh        # Linux/macOS
+# Windows: run.bat
+```
+
+脚本会重新构建并跑出上面全部产物（样例数据已随仓库提交在 `demo/input/`）。
 
 ## 架构
 

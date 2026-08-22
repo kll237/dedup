@@ -1,0 +1,32 @@
+?   	dedup	[no test files]
+=== RUN   TestFindExact
+--- PASS: TestFindExact (0.17s)
+PASS
+ok  	dedup/hash	(cached)
+=== RUN   TestPerceptualHashIdentical
+--- PASS: TestPerceptualHashIdentical (0.14s)
+=== RUN   TestPerceptualHashSimilar
+--- PASS: TestPerceptualHashSimilar (0.36s)
+=== RUN   TestFindSimilarDistinct
+    imageph_test.go:93: h1=0000000000000000 h2=ffffffffffffffff hamming=64
+--- PASS: TestFindSimilarDistinct (0.73s)
+PASS
+ok  	dedup/imageph	(cached)
+=== RUN   TestRenderText
+--- PASS: TestRenderText (0.00s)
+=== RUN   TestRenderJSON
+--- PASS: TestRenderJSON (0.00s)
+=== RUN   TestRenderHTML
+--- PASS: TestRenderHTML (0.00s)
+=== RUN   TestHuman
+--- PASS: TestHuman (0.00s)
+PASS
+ok  	dedup/report	(cached)
+?   	dedup/result	[no test files]
+=== RUN   TestWalk
+--- PASS: TestWalk (0.17s)
+=== RUN   TestWalkMinSize
+--- PASS: TestWalkMinSize (0.58s)
+PASS
+ok  	dedup/scan	(cached)
+?   	dedup/trash	[no test files]

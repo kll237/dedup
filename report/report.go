@@ -138,7 +138,7 @@ func human(b int64) string {
 		return fmt.Sprintf("%d B", b)
 	}
 	sizes := []string{"KB", "MB", "GB", "TB", "PB"}
-	f := float64(b)
+	f := float64(b) / 1024
 	i := 0
 	for f >= 1024 && i < len(sizes)-1 {
 		f /= 1024

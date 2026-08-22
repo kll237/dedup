@@ -46,3 +46,24 @@ func TestRenderHTML(t *testing.T) {
 		t.Fatal("missing html tag")
 	}
 }
+
+func TestHuman(t *testing.T) {
+	cases := []struct {
+		b    int64
+		want string
+	}{
+		{0, "0 B"},
+		{512, "512 B"},
+		{1023, "1023 B"},
+		{1024, "1.00 KB"},
+		{25728, "25.12 KB"},
+		{89116, "87.03 KB"},
+		{1048576, "1.00 MB"},
+		{1073741824, "1.00 GB"},
+	}
+	for _, c := range cases {
+		if got := human(c.b); got != c.want {
+			t.Errorf("human(%d) = %q, want %q", c.b, got, c.want)
+		}
+	}
+}

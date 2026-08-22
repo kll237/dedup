@@ -1,0 +1,22 @@
+扫描文件数: 8  总大小: 89.25 KB
+精确重复组: 1  (可节省 68 B)
+相似图片组: 1
+
+===== 按扩展名统计 =====
+  .jpg       文件      3  共 89.12 KB
+  .txt       文件      3  共 102 B
+  .md        文件      1  共 19 B
+  .log       文件      1  共 13 B
+
+===== 精确重复 (按内容哈希) =====
+
+[1] 哈希 3e71900b…415a59ee  单文件 34 B  副本 3  可节省 68 B
+    - D:\workBuddy\zwrw1\git1\dedup\demo\input\note_a.txt
+    - D:\workBuddy\zwrw1\git1\dedup\demo\input\note_b.txt
+    - D:\workBuddy\zwrw1\git1\dedup\demo\input\sub\sub_note_c.txt
+
+===== 相似图片 (感知哈希) =====
+
+[1] 代表指纹 156262268f593d9e  张数 2
+    - D:\workBuddy\zwrw1\git1\dedup\demo\input\a_original.jpg  (25.12 KB)  156262268f593d9e
+    - D:\workBuddy\zwrw1\git1\dedup\demo\input\b_near.jpg  (37.35 KB)  13626626ac592d9e

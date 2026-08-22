@@ -14,3 +14,12 @@ dist/
 _e2e*/
 report.json
 report.html
+
+# 例外：demo 下的真实产物作为证据提交（白名单）
+!demo/output/report.html
+!demo/output/report.csv
+!demo/output/stdout.txt
+!demo/output/progress.txt
+!demo/output/delete_exact_preview.txt
+!demo/output/delete_similar_preview.txt
+!demo/TEST_OUTPUT.txt
