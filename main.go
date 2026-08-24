@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"sort"
 	"strconv"
 	"strings"
 
@@ -19,6 +18,7 @@ import (
 	"dedup/result"
 	"dedup/scan"
 	"dedup/trash"
+	"dedup/web"
 )
 
 type multiFlag []string
@@ -30,6 +30,12 @@ func (m *multiFlag) Set(v string) error {
 }
 
 func main() {
+	// `dedup serve` launches the visual web dashboard (zero-dependency).
+	if len(os.Args) > 1 && os.Args[1] == "serve" {
+		web.Run(os.Args[2:])
+		return
+	}
+
 	var (
 		paths      multiFlag
 		mode       = flag.String("mode", "both", "扫描模式: exact(精确去重) | image(相似图片) | both")
@@ -103,9 +109,6 @@ func main() {
 	}
 
 	rep := report.Report{}
-	rep.Stats.FilesScanned = len(files)
-	rep.Stats.ExtStats = collectExtStats(files, &rep.Stats.BytesScanned)
-
 	switch *mode {
 	case "exact":
 		pb := newProgressBar(len(files), "计算内容哈希")
@@ -128,11 +131,7 @@ func main() {
 		fatal(fmt.Errorf("未知模式: %s (应为 exact|image|both)", *mode))
 	}
 
-	for _, g := range rep.Exact {
-		rep.Stats.ExactGroups++
-		rep.Stats.WastedBytes += g.Size * int64(len(g.Files)-1)
-	}
-	rep.Stats.SimilarGroups = len(rep.Similar)
+	rep.Stats = report.BuildStats(files, rep.Exact, rep.Similar)
 
 	// Deletion (safe: into recycle bin, keep one copy per group).
 	if *deleteDup {
@@ -168,37 +167,6 @@ func main() {
 	if err := report.Render(w, rep, report.Format(*format)); err != nil {
 		fatal(err)
 	}
-}
-
-// collectExtStats tallies file counts and bytes per extension and records the
-// grand total into totalBytes. The returned slice is sorted by total bytes
-// descending.
-func collectExtStats(files []result.FileRef, totalBytes *int64) []result.ExtStat {
-	type acc struct {
-		count int
-		bytes int64
-	}
-	m := map[string]*acc{}
-	for _, f := range files {
-		ext := strings.ToLower(filepath.Ext(f.Path))
-		if ext == "" {
-			ext = "(无扩展名)"
-		}
-		a, ok := m[ext]
-		if !ok {
-			a = &acc{}
-			m[ext] = a
-		}
-		a.count++
-		a.bytes += f.Size
-		*totalBytes += f.Size
-	}
-	out := make([]result.ExtStat, 0, len(m))
-	for ext, a := range m {
-		out = append(out, result.ExtStat{Ext: ext, Count: a.count, Bytes: a.bytes})
-	}
-	sort.Slice(out, func(i, j int) bool { return out[i].Bytes > out[j].Bytes })
-	return out
 }
 
 // deleteExact moves every duplicate (beyond the first per group) into the

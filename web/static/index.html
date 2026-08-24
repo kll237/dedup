@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>dedup 可视化 · 文件去重与相似图片查找</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">⛏️</span>
+      <div>
+        <h1>dedup 可视化</h1>
+        <p class="sub">本地文件去重 · 相似图片查找 · 安全删除（进回收站可找回）</p>
+      </div>
+    </div>
+    <span class="ver">v0.2.0</span>
+  </header>
+
+  <section class="panel">
+    <div class="row">
+      <label for="path">扫描路径</label>
+      <input id="path" type="text" placeholder="例如 D:\Photos 或 demo/input" value="demo/input">
+      <button id="useDemo" class="ghost">用示例目录</button>
+    </div>
+    <div class="row">
+      <label for="mode">模式</label>
+      <select id="mode">
+        <option value="both">精确 + 相似图片</option>
+        <option value="exact">仅精确去重</option>
+        <option value="image">仅相似图片</option>
+      </select>
+      <label class="inline" for="threshold">相似阈值</label>
+      <input id="threshold" type="number" min="0" max="64" value="10">
+      <label class="inline" for="min">最小</label>
+      <input id="min" type="text" placeholder="0" class="size">
+      <label class="inline" for="max">最大</label>
+      <input id="max" type="text" placeholder="0" class="size">
+    </div>
+    <div class="row actions">
+      <button id="scan" class="primary">开始扫描</button>
+      <button id="stop" class="ghost" disabled>停止</button>
+      <span id="status" class="status"></span>
+    </div>
+    <div class="progress hidden" id="progressWrap">
+      <div class="bar"><div class="fill" id="bar"></div></div>
+      <div class="ptext" id="ptext"></div>
+    </div>
+  </section>
+
+  <section id="summary" class="summary hidden"></section>
+
+  <section id="extstats" class="card hidden">
+    <h2>按扩展名统计</h2>
+    <table id="extTable">
+      <thead><tr><th>扩展名</th><th>文件数</th><th>总大小</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </section>
+
+  <section id="exactSection" class="card hidden">
+    <h2>精确重复 <span id="exactCount" class="badge"></span></h2>
+    <div id="exactList" class="groups"></div>
+  </section>
+
+  <section id="similarSection" class="card hidden">
+    <h2>相似图片 <span id="similarCount" class="badge"></span></h2>
+    <div id="similarList" class="groups"></div>
+  </section>
+
+  <div id="modal" class="modal hidden">
+    <div class="modal-box">
+      <h3 id="modalTitle">确认删除</h3>
+      <p class="warn">以下文件将被移入回收站（可在回收站找回），每组保留一个副本。</p>
+      <ul id="modalList"></ul>
+      <div class="modal-actions">
+        <button id="modalCancel" class="ghost">取消</button>
+        <button id="modalOk" class="danger">确认移入回收站</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
