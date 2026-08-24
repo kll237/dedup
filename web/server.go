@@ -121,6 +121,27 @@ func (s *Server) handleScan(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// 清理建议阈值（均带默认值，缺省时使用 suggest.Defaults）
+	sopts := suggest.Defaults()
+	if n, err := strconv.Atoi(q.Get("staleDays")); err == nil && n > 0 {
+		sopts.StaleDays = n
+	}
+	if n, err := strconv.Atoi(q.Get("oldDays")); err == nil && n > 0 {
+		sopts.OldDays = n
+	}
+	if n, err := strconv.Atoi(q.Get("oldMinMB")); err == nil && n > 0 {
+		sopts.OldMinBytes = int64(n) * 1024 * 1024
+	}
+	if n, err := strconv.Atoi(q.Get("largeMinMB")); err == nil && n > 0 {
+		sopts.LargeMinBytes = int64(n) * 1024 * 1024
+	}
+	if n, err := strconv.Atoi(q.Get("largeTopN")); err == nil && n > 0 {
+		sopts.LargeTopN = n
+	}
+	if q.Get("redundant") == "false" {
+		sopts.Redundant = false
+	}
+
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
@@ -180,7 +201,7 @@ func (s *Server) handleScan(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 	rep.Stats = report.BuildStats(files, rep.Exact, rep.Similar)
-	rep.Suggest = suggest.Analyze(files, rep.Exact)
+	rep.Suggest = suggest.Analyze(files, rep.Exact, sopts)
 	send("result", toWeb(rep))
 }
 

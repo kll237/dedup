@@ -94,6 +94,17 @@
               <input id="max" type="text" placeholder="0" class="num sm">
             </div>
           </div>
+          <div class="adv">
+            <button type="button" id="advToggle" class="btn tiny ghost">高级建议设置 ▾</button>
+            <div id="advPanel" class="adv-panel hidden">
+              <div class="field"><label for="staleDays">长期未用 (天) ≥</label><input id="staleDays" type="number" min="1" value="180" class="num sm"></div>
+              <div class="field"><label for="oldDays">大且久未用 (天) ≥</label><input id="oldDays" type="number" min="1" value="365" class="num sm"></div>
+              <div class="field"><label for="oldMinMB">大且久未用 (MB) ≥</label><input id="oldMinMB" type="number" min="1" value="50" class="num sm"></div>
+              <div class="field"><label for="largeMinMB">大文件阈值 (MB) ≥</label><input id="largeMinMB" type="number" min="1" value="100" class="num sm"></div>
+              <div class="field"><label for="largeTopN">大文件排行 Top</label><input id="largeTopN" type="number" min="1" value="20" class="num sm"></div>
+              <div class="field inline-check"><label><input id="redundant" type="checkbox" checked> 同名冗余检测</label></div>
+            </div>
+          </div>
           <div class="progress hidden" id="progressWrap">
             <div class="bar"><div class="fill" id="bar"></div></div>
             <div class="ptext" id="ptext"></div>
@@ -146,6 +157,7 @@
             <h2>清理建议 <span id="suggestCount" class="badge"></span></h2>
             <span class="card-sub" id="suggestTip">建议去除的无用文件</span>
           </div>
+          <div class="chips" id="suggestChips"></div>
           <div id="suggestList" class="sgroups"></div>
         </section>
       </div>

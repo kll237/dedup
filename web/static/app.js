@@ -1,7 +1,14 @@
 "use strict";
 
 const IMG_EXT = [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp", ".tiff", ".tif"];
-const state = { exact: [], similar: [], ext: [], suggest: [], view: "overview" };
+const state = { exact: [], similar: [], ext: [], suggest: [], view: "overview", suggestFilter: "all" };
+
+// 类别中文名与排序（与后端 suggest 包保持一致）
+const catName = {
+  empty: "空文件", junk: "临时/缓存", dup: "重复文件",
+  old: "大且久未用", stale: "长期未使用", large: "大文件", redundant: "冗余副本",
+};
+const catRank = { empty: 0, junk: 1, dup: 2, old: 3, stale: 4, large: 5, redundant: 6 };
 
 const $ = (id) => document.getElementById(id);
 
@@ -70,6 +77,12 @@ function startScan() {
     min: $("min").value || "0",
     max: $("max").value || "0",
     skipHidden: "true",
+    staleDays: $("staleDays").value || "180",
+    oldDays: $("oldDays").value || "365",
+    oldMinMB: $("oldMinMB").value || "50",
+    largeMinMB: $("largeMinMB").value || "100",
+    largeTopN: $("largeTopN").value || "20",
+    redundant: $("redundant").checked ? "true" : "false",
   });
 
   const es = new EventSource("/api/scan?" + params.toString());
@@ -170,7 +183,9 @@ function render(rep) {
     let reclaim = 0;
     state.suggest.forEach((x) => { reclaim += x.size; });
     $("suggestTip").textContent = "共 " + state.suggest.length + " 个建议清理文件 · 预计可释放 " + human(reclaim);
-    $("suggestList").innerHTML = state.suggest.map((g, i) => suggestCard(g, i)).join("");
+    state.suggestFilter = "all";
+    renderSuggestChips();
+    renderSuggestList();
   } else {
     $("suggestSection").classList.add("hidden");
   }
@@ -187,10 +202,10 @@ function suggestCard(g, i) {
   const related = (g.related && g.related.length)
     ? `<div class="srelated"><div class="rl">关联文件 (${g.related.length})</div><ul>${g.related.map((p) => `<li title="${esc(p)}">${esc(base(p))}</li>`).join("")}</ul></div>`
     : "";
-  const catName = { empty: "空文件", junk: "临时/缓存", dup: "重复", old: "长期未用" }[g.category] || g.category;
+  const catLabel = catName[g.category] || g.category;
   return `<div class="scard" data-path="${esc(g.path)}">
     <div class="shead">
-      <span class="tag ${g.category}">${esc(catName)}</span>
+      <span class="tag ${g.category}">${esc(catLabel)}</span>
       <span class="sname" title="${esc(g.path)}">${esc(base(g.path))}</span>
       <span class="sfunc">${esc(g.func)}</span>
     </div>
@@ -203,9 +218,23 @@ function suggestCard(g, i) {
     </div>
     ${related}
     <div class="sfoot">
-      <button class="btn ghost" data-del-suggest="${i}">移入回收站（仅此文件）</button>
+      <button class="btn ghost" data-del-suggest="${esc(g.path)}">移入回收站（仅此文件）</button>
     </div>
   </div>`;
+}
+
+function renderSuggestChips() {
+  const counts = {};
+  state.suggest.forEach((x) => { counts[x.category] = (counts[x.category] || 0) + 1; });
+  const cats = Object.keys(counts).sort((a, b) => catRank[a] - catRank[b]);
+  const all = `<button class="chip ${state.suggestFilter === "all" ? "on" : ""}" data-cat="all">全部 ${state.suggest.length}</button>`;
+  const btns = cats.map((c) => `<button class="chip ${state.suggestFilter === c ? "on" : ""}" data-cat="${c}">${esc(catName[c] || c)} ${counts[c]}</button>`).join("");
+  $("suggestChips").innerHTML = all + btns;
+}
+
+function renderSuggestList() {
+  const list = state.suggest.filter((x) => state.suggestFilter === "all" || x.category === state.suggestFilter);
+  $("suggestList").innerHTML = list.map((g, i) => suggestCard(g, i)).join("");
 }
 
 function kpi(accent, k, v, good) {
@@ -319,8 +348,8 @@ let pending = null;
 document.addEventListener("click", (e) => {
   const sb = e.target.closest("[data-del-suggest]");
   if (sb) {
-    const idx = +sb.getAttribute("data-del-suggest");
-    const item = state.suggest[idx];
+    const p = sb.getAttribute("data-del-suggest");
+    const item = state.suggest.find((x) => x.path === p);
     if (!item) return;
     pending = { paths: [item.path], btn: sb };
     $("modalList").innerHTML = `<li>${esc(item.path)}</li>`;
@@ -406,4 +435,18 @@ $("useDemo").addEventListener("click", () => {
   $("path").value = "demo/input";
   $("mode").value = "both";
   $("threshold").value = "10";
+});
+
+$("advToggle").addEventListener("click", () => {
+  const p = $("advPanel");
+  const hidden = p.classList.toggle("hidden");
+  $("advToggle").textContent = hidden ? "高级建议设置 ▾" : "高级建议设置 ▴";
+});
+
+$("suggestChips").addEventListener("click", (e) => {
+  const c = e.target.closest("[data-cat]");
+  if (!c) return;
+  state.suggestFilter = c.getAttribute("data-cat");
+  renderSuggestChips();
+  renderSuggestList();
 });

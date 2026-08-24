@@ -15,6 +15,7 @@ import (
 	"dedup/hash"
 	"dedup/imageph"
 	"dedup/report"
+	"dedup/suggest"
 	"dedup/result"
 	"dedup/scan"
 	"dedup/trash"
@@ -132,6 +133,7 @@ func main() {
 	}
 
 	rep.Stats = report.BuildStats(files, rep.Exact, rep.Similar)
+	rep.Suggest = suggest.Analyze(files, rep.Exact, suggest.Defaults())
 
 	// Deletion (safe: into recycle bin, keep one copy per group).
 	if *deleteDup {
