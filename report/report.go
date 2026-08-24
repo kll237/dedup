@@ -8,13 +8,15 @@ import (
 	"io"
 
 	"dedup/result"
+	"dedup/suggest"
 )
 
 // Report is the full payload rendered by the tool.
 type Report struct {
-	Exact   []result.ExactGroup
-	Similar []result.SimilarGroup
-	Stats   result.Stats
+	Exact    []result.ExactGroup
+	Similar  []result.SimilarGroup
+	Stats    result.Stats
+	Suggest  []suggest.Suggestion
 }
 
 // Format enumerates supported output formats.
@@ -73,6 +75,17 @@ func renderText(w io.Writer, r Report) error {
 			fmt.Fprintf(w, "\n[%d] 代表指纹 %016x  张数 %d\n", gi+1, g.Representative, len(g.Files))
 			for _, f := range g.Files {
 				fmt.Fprintf(w, "    - %s  (%s)  %016x\n", f.Path, human(f.Size), f.Hash)
+			}
+		}
+	}
+	if len(r.Suggest) > 0 {
+		fmt.Fprintln(w, "\n===== 清理建议 (建议去除的无用文件) =====")
+		for _, s := range r.Suggest {
+			fmt.Fprintf(w, "\n  [%s] %s  (%s)\n", s.Category, s.Path, human(s.Size))
+			fmt.Fprintf(w, "    功能: %s\n", s.Func)
+			fmt.Fprintf(w, "    原因: %s\n", s.Reason)
+			if len(s.Related) > 0 {
+				fmt.Fprintf(w, "    关联: %d 个文件\n", len(s.Related))
 			}
 		}
 	}

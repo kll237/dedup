@@ -1,7 +1,7 @@
 "use strict";
 
 const IMG_EXT = [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp", ".tiff", ".tif"];
-const state = { exact: [], similar: [], ext: [], view: "overview" };
+const state = { exact: [], similar: [], ext: [], suggest: [], view: "overview" };
 
 const $ = (id) => document.getElementById(id);
 
@@ -15,6 +15,13 @@ function human(b) {
 function isImage(p) {
   const e = p.toLowerCase().slice(p.lastIndexOf("."));
   return IMG_EXT.includes(e);
+}
+function fmtTime(ms) {
+  if (!ms) return "—";
+  const d = new Date(ms);
+  if (isNaN(d.getTime())) return "—";
+  const p = (n) => (n < 10 ? "0" + n : "" + n);
+  return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()) + " " + p(d.getHours()) + ":" + p(d.getMinutes());
 }
 function base(p) {
   const i = Math.max(p.lastIndexOf("/"), p.lastIndexOf("\\"));
@@ -114,6 +121,7 @@ function render(rep) {
   state.exact = rep.exact || [];
   state.similar = rep.similar || [];
   state.ext = s.extStats || [];
+  state.suggest = rep.suggest || [];
 
   $("empty").classList.add("hidden");
   $("summary").classList.remove("hidden");
@@ -155,11 +163,49 @@ function render(rep) {
     $("similarSection").classList.add("hidden");
   }
 
+  // 清理建议
+  if (state.suggest.length) {
+    $("suggestSection").classList.remove("hidden");
+    $("suggestCount").textContent = state.suggest.length;
+    let reclaim = 0;
+    state.suggest.forEach((x) => { reclaim += x.size; });
+    $("suggestTip").textContent = "共 " + state.suggest.length + " 个建议清理文件 · 预计可释放 " + human(reclaim);
+    $("suggestList").innerHTML = state.suggest.map((g, i) => suggestCard(g, i)).join("");
+  } else {
+    $("suggestSection").classList.add("hidden");
+  }
+
   // 侧边栏徽标
   $("navExact").textContent = state.exact.length;
   $("navSimilar").textContent = state.similar.length;
+  $("navSuggest").textContent = state.suggest.length;
 
   applyView();
+}
+
+function suggestCard(g, i) {
+  const related = (g.related && g.related.length)
+    ? `<div class="srelated"><div class="rl">关联文件 (${g.related.length})</div><ul>${g.related.map((p) => `<li title="${esc(p)}">${esc(base(p))}</li>`).join("")}</ul></div>`
+    : "";
+  const catName = { empty: "空文件", junk: "临时/缓存", dup: "重复", old: "长期未用" }[g.category] || g.category;
+  return `<div class="scard" data-path="${esc(g.path)}">
+    <div class="shead">
+      <span class="tag ${g.category}">${esc(catName)}</span>
+      <span class="sname" title="${esc(g.path)}">${esc(base(g.path))}</span>
+      <span class="sfunc">${esc(g.func)}</span>
+    </div>
+    <p class="sreason">建议删除原因：${esc(g.reason)}</p>
+    <div class="smeta">
+      <span>大小 <b>${human(g.size)}</b></span>
+      <span class="stime">修改 <b>${fmtTime(g.modTime)}</b></span>
+      <span class="stime">最后使用 <b>${fmtTime(g.atime)}</b></span>
+      <span>类型 <b>${esc(g.ext || "(无)")}</b></span>
+    </div>
+    ${related}
+    <div class="sfoot">
+      <button class="btn ghost" data-del-suggest="${i}">移入回收站（仅此文件）</button>
+    </div>
+  </div>`;
 }
 
 function kpi(accent, k, v, good) {
@@ -226,6 +272,7 @@ function applyView() {
   const ex = state.exact.length > 0;
   const si = state.similar.length > 0;
   const ext = state.ext.length > 0;
+  const sg = state.suggest.length > 0;
   toggle("extstats", ext);
   toggle("exactSection", ex);
   toggle("similarSection", si);
@@ -233,6 +280,7 @@ function applyView() {
     toggle("extstats", ext);
     toggle("exactSection", ex);
     toggle("similarSection", si);
+    toggle("suggestSection", sg);
   } else if (v === "exact") {
     toggle("extstats", false);
     toggle("exactSection", ex);
@@ -245,6 +293,11 @@ function applyView() {
     toggle("extstats", ext);
     toggle("exactSection", false);
     toggle("similarSection", false);
+  } else if (v === "suggest") {
+    toggle("extstats", false);
+    toggle("exactSection", false);
+    toggle("similarSection", false);
+    toggle("suggestSection", sg);
   }
 }
 function toggle(id, on) {
@@ -264,6 +317,16 @@ document.querySelectorAll(".nav-item").forEach((a) => {
 let pending = null;
 
 document.addEventListener("click", (e) => {
+  const sb = e.target.closest("[data-del-suggest]");
+  if (sb) {
+    const idx = +sb.getAttribute("data-del-suggest");
+    const item = state.suggest[idx];
+    if (!item) return;
+    pending = { paths: [item.path], btn: sb };
+    $("modalList").innerHTML = `<li>${esc(item.path)}</li>`;
+    $("modal").classList.remove("hidden");
+    return;
+  }
   const btn = e.target.closest("[data-del]");
   if (!btn) return;
   const type = btn.getAttribute("data-del");
@@ -313,6 +376,17 @@ function markRemoved(p) {
       g.className = "gone";
       g.textContent = "已移入回收站";
       meta.appendChild(g);
+    }
+  });
+  document.querySelectorAll('.scard[data-path="' + cssEsc(p) + '"]').forEach((el) => {
+    el.style.opacity = ".45";
+    el.querySelector(".sfoot")?.remove();
+    if (!el.querySelector(".gone")) {
+      const g = document.createElement("div");
+      g.className = "gone";
+      g.style.cssText = "font-size:11px;color:var(--ok);font-weight:600;margin-top:8px;";
+      g.textContent = "已移入回收站";
+      el.appendChild(g);
     }
   });
 }

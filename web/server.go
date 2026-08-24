@@ -23,6 +23,7 @@ import (
 	"dedup/report"
 	"dedup/result"
 	"dedup/scan"
+	"dedup/suggest"
 	"dedup/trash"
 )
 
@@ -179,6 +180,7 @@ func (s *Server) handleScan(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 	rep.Stats = report.BuildStats(files, rep.Exact, rep.Similar)
+	rep.Suggest = suggest.Analyze(files, rep.Exact)
 	send("result", toWeb(rep))
 }
 
@@ -262,9 +264,10 @@ func onlyImages(files []result.FileRef, exts []string) []result.FileRef {
 // webReport is the JSON shape sent to the browser. Hashes are hex strings so
 // that 64-bit perceptual hashes survive JSON number parsing in JavaScript.
 type webReport struct {
-	Stats   result.Stats `json:"stats"`
-	Exact   []webExact   `json:"exact"`
-	Similar []webSimilar `json:"similar"`
+	Stats    result.Stats  `json:"stats"`
+	Exact    []webExact    `json:"exact"`
+	Similar  []webSimilar  `json:"similar"`
+	Suggest  []webSuggest  `json:"suggest"`
 }
 
 type webExact struct {
@@ -284,6 +287,18 @@ type webFile struct {
 	Hash string `json:"hash,omitempty"`
 }
 
+type webSuggest struct {
+	Path     string   `json:"path"`
+	Size     int64    `json:"size"`
+	Ext      string   `json:"ext"`
+	ModTime  int64    `json:"modTime"`
+	Atime    int64    `json:"atime"`
+	Func     string   `json:"func"`
+	Category string   `json:"category"`
+	Reason   string   `json:"reason"`
+	Related  []string `json:"related"`
+}
+
 func toWeb(rep report.Report) webReport {
 	out := webReport{Stats: rep.Stats}
 	for _, g := range rep.Exact {
@@ -299,6 +314,19 @@ func toWeb(rep report.Report) webReport {
 			ws.Files = append(ws.Files, webFile{Path: f.Path, Size: f.Size, Hash: fmt.Sprintf("%016x", f.Hash)})
 		}
 		out.Similar = append(out.Similar, ws)
+	}
+	for _, s := range rep.Suggest {
+		out.Suggest = append(out.Suggest, webSuggest{
+			Path:     s.Path,
+			Size:     s.Size,
+			Ext:      s.Ext,
+			ModTime:  s.ModTime,
+			Atime:    s.Atime,
+			Func:     s.Func,
+			Category: s.Category,
+			Reason:   s.Reason,
+			Related:  s.Related,
+		})
 	}
 	return out
 }

@@ -34,6 +34,10 @@
           <svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
           <span>扩展名统计</span>
         </a>
+        <a class="nav-item" data-view="suggest">
+          <svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6"/></svg>
+          <span>清理建议 <em id="navSuggest">0</em></span>
+        </a>
       </nav>
       <div class="side-foot">
         <div class="ver">v0.2.0</div>
@@ -134,6 +138,15 @@
             <span class="card-sub">感知哈希相近的图片，含汉明距离</span>
           </div>
           <div id="similarList" class="groups"></div>
+        </section>
+
+        <!-- 清理建议 -->
+        <section id="suggestSection" class="card hidden">
+          <div class="card-head">
+            <h2>清理建议 <span id="suggestCount" class="badge"></span></h2>
+            <span class="card-sub" id="suggestTip">建议去除的无用文件</span>
+          </div>
+          <div id="suggestList" class="sgroups"></div>
         </section>
       </div>
     </main>

@@ -214,6 +214,28 @@ td .pct .track > i { display: block; height: 100%; background: var(--brand); bor
 
 .hidden { display: none !important; }
 
+/* ---------- 清理建议 ---------- */
+.sgroups { display: flex; flex-direction: column; gap: 12px; }
+.scard { border: 1px solid var(--line); border-radius: 10px; padding: 13px 15px; background: #fff; }
+.scard .shead { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+.scard .sname { font-size: 13.5px; font-weight: 700; word-break: break-all; }
+.scard .sfunc { font-size: 11.5px; color: var(--muted); background: #f1f5f9; border-radius: 999px; padding: 1px 9px; }
+.scard .sreason { font-size: 13px; color: #334155; margin: 9px 0 0; }
+.scard .smeta { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 9px; font-size: 12px; color: var(--muted); }
+.scard .smeta b { color: var(--ink); font-weight: 700; }
+.scard .stime b { color: var(--ink); font-weight: 700; }
+.tag { font-size: 11px; font-weight: 700; color: #fff; border-radius: 999px; padding: 2px 9px; }
+.tag.empty { background: #64748b; }
+.tag.junk { background: #d97706; }
+.tag.dup { background: var(--danger); }
+.tag.old { background: #7c3aed; }
+.srelated { margin-top: 10px; border-top: 1px dashed var(--line); padding-top: 9px; }
+.srelated .rl { font-size: 11.5px; color: var(--muted); margin-bottom: 5px; }
+.srelated ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.srelated li { font-size: 12px; color: #475569; word-break: break-all; padding-left: 14px; position: relative; }
+.srelated li::before { content: "↳"; position: absolute; left: 0; color: #94a3b8; }
+.sfoot { margin-top: 11px; }
+
 /* ---------- 弹窗 ---------- */
 .modal { position: fixed; inset: 0; background: rgba(15,23,42,.5); display: flex; align-items: center; justify-content: center; z-index: 50; }
 .modal-box { background: #fff; border-radius: 14px; padding: 24px; width: min(540px, 92vw); max-height: 82vh; overflow: auto; box-shadow: 0 20px 60px rgba(0,0,0,.3); }
