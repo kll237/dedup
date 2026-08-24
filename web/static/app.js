@@ -1,7 +1,7 @@
 "use strict";
 
 const IMG_EXT = [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp", ".tiff", ".tif"];
-const state = { exact: [], similar: [], es: null };
+const state = { exact: [], similar: [], ext: [], view: "overview" };
 
 const $ = (id) => document.getElementById(id);
 
@@ -27,7 +27,6 @@ function esc(s) {
 }
 function thumbURL(p) { return "/api/thumb?path=" + encodeURIComponent(p); }
 
-// hamming distance from two hex strings (64-bit safe via BigInt)
 function hammingHex(a, b) {
   let x = BigInt("0x" + a) ^ BigInt("0x" + b);
   let c = 0n;
@@ -44,6 +43,7 @@ function showToast(t) {
   showToast._t = setTimeout(() => el.classList.add("hidden"), 2600);
 }
 
+// ---------- 扫描 ----------
 function startScan() {
   if (state.es) state.es.close();
   const path = $("path").value.trim();
@@ -54,6 +54,7 @@ function startScan() {
   setStatus("扫描中…");
   $("progressWrap").classList.remove("hidden");
   setBar(0, "准备中…");
+  $("empty").classList.add("hidden");
 
   const params = new URLSearchParams({
     path,
@@ -107,27 +108,36 @@ function setBar(pct, text) {
   $("ptext").textContent = text || "";
 }
 
+// ---------- 渲染 ----------
 function render(rep) {
-  // summary
   const s = rep.stats;
+  state.exact = rep.exact || [];
+  state.similar = rep.similar || [];
+  state.ext = s.extStats || [];
+
+  $("empty").classList.add("hidden");
   $("summary").classList.remove("hidden");
   $("summary").innerHTML = [
-    card("扫描文件数", s.filesScanned),
-    card("精确重复组", s.exactGroups),
-    card("相似图片组", s.similarGroups),
-    card("可节省空间", human(s.wastedBytes), s.wastedBytes > 0),
+    kpi("accent-blue", "扫描文件数", s.filesScanned),
+    kpi("accent-rose", "精确重复组", s.exactGroups),
+    kpi("accent-violet", "相似图片组", s.similarGroups),
+    kpi("accent-green", "可节省空间", human(s.wastedBytes), s.wastedBytes > 0),
   ].join("");
 
-  // ext stats
-  if (s.extStats && s.extStats.length) {
+  // 扩展名统计
+  const total = state.ext.reduce((a, x) => a + x.bytes, 0) || 1;
+  if (state.ext.length) {
     $("extstats").classList.remove("hidden");
-    $("extTable").querySelector("tbody").innerHTML = s.extStats.map((x) =>
-      `<tr><td>${esc(x.ext)}</td><td>${x.count}</td><td>${human(x.bytes)}</td></tr>`
-    ).join("");
+    $("extTable").querySelector("tbody").innerHTML = state.ext.map((x) => {
+      const pct = Math.round((x.bytes / total) * 100);
+      return `<tr><td><b>${esc(x.ext)}</b></td><td>${x.count}</td><td>${human(x.bytes)}</td>
+        <td><span class="pct">${pct}%<span class="track"><i style="width:${pct}%"></i></span></span></td></tr>`;
+    }).join("");
+  } else {
+    $("extstats").classList.add("hidden");
   }
 
-  // exact
-  state.exact = rep.exact || [];
+  // 精确重复
   if (state.exact.length) {
     $("exactSection").classList.remove("hidden");
     $("exactCount").textContent = state.exact.length;
@@ -136,8 +146,7 @@ function render(rep) {
     $("exactSection").classList.add("hidden");
   }
 
-  // similar
-  state.similar = rep.similar || [];
+  // 相似图片
   if (state.similar.length) {
     $("similarSection").classList.remove("hidden");
     $("similarCount").textContent = state.similar.length;
@@ -145,10 +154,19 @@ function render(rep) {
   } else {
     $("similarSection").classList.add("hidden");
   }
+
+  // 侧边栏徽标
+  $("navExact").textContent = state.exact.length;
+  $("navSimilar").textContent = state.similar.length;
+
+  applyView();
 }
 
-function card(k, v, good) {
-  return `<div class="stat"><div class="k">${esc(k)}</div><div class="v${good ? " good" : ""}">${esc(v)}</div></div>`;
+function kpi(accent, k, v, good) {
+  return `<div class="kpi ${accent}">
+    <div class="k"><span class="dot"></span>${esc(k)}</div>
+    <div class="v${good ? " good" : ""}">${esc(v)}</div>
+  </div>`;
 }
 
 function fileCard(f, extra) {
@@ -171,14 +189,14 @@ function exactGroup(g, i) {
   const del = g.files.length - 1;
   return `<div class="group">
     <div class="ghead">
-      <span>哈希 <b>${esc(g.hash.slice(0, 12))}…</b></span>
+      <span>哈希 <b class="mono">${esc(g.hash.slice(0, 12))}…</b></span>
       <span>单文件 <b>${human(g.size)}</b></span>
       <span>副本 <b>${g.files.length}</b></span>
       <span>可节省 <b>${save}</b></span>
     </div>
     <div class="files">${files}</div>
     <div class="gfoot">
-      <button class="ghost" data-del="exact" data-idx="${i}" ${del <= 0 ? "disabled" : ""}>删除其余 ${del} 个副本（保留首个）</button>
+      <button class="btn ghost" data-del="exact" data-idx="${i}" ${del <= 0 ? "disabled" : ""}>删除其余 ${del} 个副本（保留首个）</button>
     </div>
   </div>`;
 }
@@ -192,17 +210,57 @@ function similarGroup(g, i) {
   const del = g.files.length - 1;
   return `<div class="group">
     <div class="ghead">
-      <span>代表指纹 <b>${esc(g.rep)}</b></span>
+      <span>代表指纹 <b class="mono">${esc(g.rep)}</b></span>
       <span>张数 <b>${g.files.length}</b></span>
     </div>
     <div class="files">${files}</div>
     <div class="gfoot">
-      <button class="ghost" data-del="similar" data-idx="${i}" ${del <= 0 ? "disabled" : ""}>删除相似副本（保留代表图）</button>
+      <button class="btn ghost" data-del="similar" data-idx="${i}" ${del <= 0 ? "disabled" : ""}>删除相似副本（保留代表图）</button>
     </div>
   </div>`;
 }
 
-// ---- delete flow ----
+// ---------- 侧边栏视图切换 ----------
+function applyView() {
+  const v = state.view;
+  const ex = state.exact.length > 0;
+  const si = state.similar.length > 0;
+  const ext = state.ext.length > 0;
+  toggle("extstats", ext);
+  toggle("exactSection", ex);
+  toggle("similarSection", si);
+  if (v === "overview") {
+    toggle("extstats", ext);
+    toggle("exactSection", ex);
+    toggle("similarSection", si);
+  } else if (v === "exact") {
+    toggle("extstats", false);
+    toggle("exactSection", ex);
+    toggle("similarSection", false);
+  } else if (v === "similar") {
+    toggle("extstats", false);
+    toggle("exactSection", false);
+    toggle("similarSection", si);
+  } else if (v === "ext") {
+    toggle("extstats", ext);
+    toggle("exactSection", false);
+    toggle("similarSection", false);
+  }
+}
+function toggle(id, on) {
+  document.getElementById(id).classList.toggle("hidden", !on);
+}
+
+document.querySelectorAll(".nav-item").forEach((a) => {
+  a.addEventListener("click", () => {
+    document.querySelectorAll(".nav-item").forEach((x) => x.classList.remove("active"));
+    a.classList.add("active");
+    state.view = a.dataset.view;
+    applyView();
+  });
+});
+
+// ---------- 删除流程 ----------
 let pending = null;
 
 document.addEventListener("click", (e) => {
@@ -211,7 +269,7 @@ document.addEventListener("click", (e) => {
   const type = btn.getAttribute("data-del");
   const idx = +btn.getAttribute("data-idx");
   const group = (type === "exact" ? state.exact : state.similar)[idx];
-  const toDelete = group.files.slice(1).map((f) => f.path); // keep first
+  const toDelete = group.files.slice(1).map((f) => f.path); // 保留首个
   if (!toDelete.length) return;
   pending = { paths: toDelete, btn };
   $("modalList").innerHTML = toDelete.map((p) => `<li>${esc(p)}</li>`).join("");
@@ -262,7 +320,7 @@ function cssEsc(s) {
   return s.replace(/["\\]/g, "\\$&");
 }
 
-// ---- controls ----
+// ---------- 控件 ----------
 $("scan").addEventListener("click", startScan);
 $("stop").addEventListener("click", () => {
   if (state.es) state.es.close();

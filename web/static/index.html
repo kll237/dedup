@@ -3,80 +3,151 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>dedup 可视化 · 文件去重与相似图片查找</title>
+  <title>dedup 工作台 · 文件去重与相似图片查找</title>
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-  <header class="topbar">
-    <div class="brand">
-      <span class="logo">⛏️</span>
-      <div>
-        <h1>dedup 可视化</h1>
-        <p class="sub">本地文件去重 · 相似图片查找 · 安全删除（进回收站可找回）</p>
+  <div class="app">
+    <!-- 侧边栏 -->
+    <aside class="sidebar">
+      <div class="brand">
+        <span class="logo">⛏</span>
+        <div class="brand-txt">
+          <strong>dedup</strong>
+          <small>可视化工作台</small>
+        </div>
       </div>
-    </div>
-    <span class="ver">v0.2.0</span>
-  </header>
+      <nav class="nav">
+        <a class="nav-item active" data-view="overview">
+          <svg viewBox="0 0 24 24"><path d="M3 3h7v7H3zM14 3h7v4h-7zM14 10h7v11h-7zM3 13h7v8H3z"/></svg>
+          <span>概览</span>
+        </a>
+        <a class="nav-item" data-view="exact">
+          <svg viewBox="0 0 24 24"><path d="M3 7l9-4 9 4-9 4zM3 12l9 4 9-4M3 17l9 4 9-4"/></svg>
+          <span>精确重复 <em id="navExact">0</em></span>
+        </a>
+        <a class="nav-item" data-view="similar">
+          <svg viewBox="0 0 24 24"><path d="M3 5h18v14H3zM3 15l5-4 4 3 3-2 6 5"/><circle cx="8" cy="9" r="1.6"/></svg>
+          <span>相似图片 <em id="navSimilar">0</em></span>
+        </a>
+        <a class="nav-item" data-view="ext">
+          <svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
+          <span>扩展名统计</span>
+        </a>
+      </nav>
+      <div class="side-foot">
+        <div class="ver">v0.2.0</div>
+        <div class="tip">纯 Go · 零依赖 · 安全删除</div>
+      </div>
+    </aside>
 
-  <section class="panel">
-    <div class="row">
-      <label for="path">扫描路径</label>
-      <input id="path" type="text" placeholder="例如 D:\Photos 或 demo/input" value="demo/input">
-      <button id="useDemo" class="ghost">用示例目录</button>
-    </div>
-    <div class="row">
-      <label for="mode">模式</label>
-      <select id="mode">
-        <option value="both">精确 + 相似图片</option>
-        <option value="exact">仅精确去重</option>
-        <option value="image">仅相似图片</option>
-      </select>
-      <label class="inline" for="threshold">相似阈值</label>
-      <input id="threshold" type="number" min="0" max="64" value="10">
-      <label class="inline" for="min">最小</label>
-      <input id="min" type="text" placeholder="0" class="size">
-      <label class="inline" for="max">最大</label>
-      <input id="max" type="text" placeholder="0" class="size">
-    </div>
-    <div class="row actions">
-      <button id="scan" class="primary">开始扫描</button>
-      <button id="stop" class="ghost" disabled>停止</button>
-      <span id="status" class="status"></span>
-    </div>
-    <div class="progress hidden" id="progressWrap">
-      <div class="bar"><div class="fill" id="bar"></div></div>
-      <div class="ptext" id="ptext"></div>
-    </div>
-  </section>
+    <!-- 主区域 -->
+    <main class="main">
+      <header class="topbar">
+        <div class="top-title">
+          <h1>文件去重工作台</h1>
+          <p class="crumb">本地文件去重 · 相似图片查找 · 安全删除（进回收站可找回）</p>
+        </div>
+        <div class="top-actions">
+          <span id="status" class="status"></span>
+          <button id="scan" class="btn primary">
+            <svg viewBox="0 0 24 24"><path d="M21 21l-4.3-4.3M11 18a7 7 0 100-14 7 7 0 000 14z"/></svg>
+            开始扫描
+          </button>
+          <button id="stop" class="btn ghost" disabled>停止</button>
+        </div>
+      </header>
 
-  <section id="summary" class="summary hidden"></section>
+      <div class="content">
+        <!-- 扫描控制条 -->
+        <section class="controlbar">
+          <div class="ctl-row">
+            <label class="ctl-label" for="path">扫描路径</label>
+            <div class="path-wrap">
+              <input id="path" type="text" placeholder="例如 D:\Photos 或 demo/input" value="demo/input">
+              <button id="useDemo" class="btn tiny ghost">用示例目录</button>
+            </div>
+          </div>
+          <div class="ctl-row inline">
+            <div class="field">
+              <label for="mode">模式</label>
+              <select id="mode">
+                <option value="both">精确 + 相似图片</option>
+                <option value="exact">仅精确去重</option>
+                <option value="image">仅相似图片</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="threshold">相似阈值</label>
+              <input id="threshold" type="number" min="0" max="64" value="10" class="num">
+            </div>
+            <div class="field">
+              <label for="min">最小大小</label>
+              <input id="min" type="text" placeholder="0" class="num sm">
+            </div>
+            <div class="field">
+              <label for="max">最大大小</label>
+              <input id="max" type="text" placeholder="0" class="num sm">
+            </div>
+          </div>
+          <div class="progress hidden" id="progressWrap">
+            <div class="bar"><div class="fill" id="bar"></div></div>
+            <div class="ptext" id="ptext"></div>
+          </div>
+        </section>
 
-  <section id="extstats" class="card hidden">
-    <h2>按扩展名统计</h2>
-    <table id="extTable">
-      <thead><tr><th>扩展名</th><th>文件数</th><th>总大小</th></tr></thead>
-      <tbody></tbody>
-    </table>
-  </section>
+        <!-- 空状态 -->
+        <section id="empty" class="empty">
+          <div class="empty-ico">📂</div>
+          <p class="empty-title">尚未扫描</p>
+          <p class="empty-sub">在上方填写路径并点击「开始扫描」，结果将在此以工作台形式展示。</p>
+        </section>
 
-  <section id="exactSection" class="card hidden">
-    <h2>精确重复 <span id="exactCount" class="badge"></span></h2>
-    <div id="exactList" class="groups"></div>
-  </section>
+        <!-- KPI 概览 -->
+        <section id="summary" class="kpis hidden"></section>
 
-  <section id="similarSection" class="card hidden">
-    <h2>相似图片 <span id="similarCount" class="badge"></span></h2>
-    <div id="similarList" class="groups"></div>
-  </section>
+        <!-- 扩展名统计 -->
+        <section id="extstats" class="card hidden">
+          <div class="card-head">
+            <h2>按扩展名统计</h2>
+            <span class="card-sub">各类文件的分布与占用空间</span>
+          </div>
+          <table id="extTable">
+            <thead><tr><th>扩展名</th><th>文件数</th><th>总大小</th><th>占比</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </section>
 
+        <!-- 精确重复 -->
+        <section id="exactSection" class="card hidden">
+          <div class="card-head">
+            <h2>精确重复 <span id="exactCount" class="badge"></span></h2>
+            <span class="card-sub">内容完全相同的文件，每组保留一个</span>
+          </div>
+          <div id="exactList" class="groups"></div>
+        </section>
+
+        <!-- 相似图片 -->
+        <section id="similarSection" class="card hidden">
+          <div class="card-head">
+            <h2>相似图片 <span id="similarCount" class="badge"></span></h2>
+            <span class="card-sub">感知哈希相近的图片，含汉明距离</span>
+          </div>
+          <div id="similarList" class="groups"></div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <!-- 删除确认弹窗 -->
   <div id="modal" class="modal hidden">
     <div class="modal-box">
       <h3 id="modalTitle">确认删除</h3>
       <p class="warn">以下文件将被移入回收站（可在回收站找回），每组保留一个副本。</p>
       <ul id="modalList"></ul>
       <div class="modal-actions">
-        <button id="modalCancel" class="ghost">取消</button>
-        <button id="modalOk" class="danger">确认移入回收站</button>
+        <button id="modalCancel" class="btn ghost">取消</button>
+        <button id="modalOk" class="btn danger">确认移入回收站</button>
       </div>
     </div>
   </div>
