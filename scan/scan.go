@@ -8,6 +8,7 @@ import (
 	"io/fs"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"dedup/result"
 )
@@ -17,6 +18,8 @@ type Options struct {
 	Roots      []string
 	MinSize    int64
 	MaxSize    int64
+	MinTime    time.Time // zero = no lower bound on modification time
+	MaxTime    time.Time // zero = no upper bound on modification time
 	IncludeExt []string // lowercase, with dot, e.g. ".jpg"; empty = all
 	ExcludeExt []string
 	SkipHidden bool
@@ -72,13 +75,20 @@ func Walk(opts Options) ([]result.FileRef, error) {
 			if err != nil {
 				return nil
 			}
-			sz := info.Size()
-			if opts.MinSize > 0 && sz < opts.MinSize {
-				return nil
-			}
-			if opts.MaxSize > 0 && sz > opts.MaxSize {
-				return nil
-			}
+		sz := info.Size()
+		if opts.MinSize > 0 && sz < opts.MinSize {
+			return nil
+		}
+		if opts.MaxSize > 0 && sz > opts.MaxSize {
+			return nil
+		}
+		mt := info.ModTime()
+		if !opts.MinTime.IsZero() && mt.Before(opts.MinTime) {
+			return nil
+		}
+		if !opts.MaxTime.IsZero() && mt.After(opts.MaxTime) {
+			return nil
+		}
 			abs, err := filepath.Abs(path)
 			if err != nil {
 				abs = path

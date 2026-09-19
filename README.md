@@ -18,7 +18,7 @@
 - 🌐 **Web 可视化界面**：`dedup serve` 启动本地服务，浏览器里选目录、看实时进度、点缩略图、一键安全删除（详见下文）
 - 📄 三种报告格式：终端文本 / JSON / HTML（HTML 带图片缩略图）
 - ⚡ 并发扫描与哈希（worker pool），可指定 `-workers`
-- 🧹 忽略规则：隐藏文件、指定目录（`.git` / `node_modules`）、最小/最大文件大小、扩展名过滤
+- 🧹 忽略规则：隐藏文件、指定目录（`.git` / `node_modules`）、最小/最大文件大小、修改时间、扩展名过滤
 
 ## 安装
 
@@ -103,6 +103,7 @@ dedup serve -addr 127.0.0.1:9000 -open=false
 | `-csv` | CSV 导出文件（与 `-out` 独立的扁平表格） | 空 |
 | `-threshold` | 相似图片汉明距离阈值（0-64，越小越严格） | `10` |
 | `-min-size` / `-max-size` | 文件大小过滤，如 `1KB` / `10MB` | `0` |
+| `-min-time` / `-max-time` | 按修改时间过滤：绝对日期 `2024-01-01`，或相对值 `90d`/`12w`/`6m`/`1y`（`-min-time` 保留最近 N 天内的文件，`-max-time` 保留早于 N 天前的文件） | 空 |
 | `-workers` | 并发数（默认 = CPU 核数） | `0` |
 | `-skip-hidden` | 跳过隐藏文件和目录 | `true` |
 | `-ignore` | 跳过的目录名，逗号分隔 | `.git,.node_modules` |

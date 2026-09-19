@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"dedup/hash"
 	"dedup/imageph"
@@ -45,6 +46,8 @@ func main() {
 		csvPath    = flag.String("csv", "", "导出结果到 CSV 文件(便于表格/脚本处理)")
 		minSize    = flag.String("min-size", "0", "最小文件大小，如 1KB / 2MB")
 		maxSize    = flag.String("max-size", "0", "最大文件大小，如 10MB")
+		minTime    = flag.String("min-time", "", "仅包含修改时间不早于该时间的文件，如 2024-01-01 或相对值 90d/12w/6m/1y(表示最近 N 天内)")
+		maxTime    = flag.String("max-time", "", "仅包含修改时间不晚于该时间的文件，如 2024-01-01 或相对值 90d/12w/6m/1y(表示早于 N 天前)")
 		threshold  = flag.Int("threshold", 10, "相似图片汉明距离阈值(0-64)，越小越严格")
 		workers    = flag.Int("workers", 0, "并发数，默认等于 CPU 核数")
 		skipHidden = flag.Bool("skip-hidden", true, "跳过隐藏文件和目录")
@@ -82,6 +85,14 @@ func main() {
 	if err != nil {
 		fatal(err)
 	}
+	minT, err := parseTime(*minTime)
+	if err != nil {
+		fatal(err)
+	}
+	maxT, err := parseTime(*maxTime)
+	if err != nil {
+		fatal(err)
+	}
 
 	ignoreDirs := map[string]bool{}
 	for _, d := range strings.Split(*ignore, ",") {
@@ -97,6 +108,8 @@ func main() {
 		Roots:      roots,
 		MinSize:    minB,
 		MaxSize:    maxB,
+		MinTime:    minT,
+		MaxTime:    maxT,
 		SkipHidden: *skipHidden,
 		IgnoreDirs: ignoreDirs,
 	}
@@ -314,4 +327,43 @@ func parseSize(s string) (int64, error) {
 func fatal(err error) {
 	fmt.Fprintln(os.Stderr, "错误:", err)
 	os.Exit(1)
+}
+
+// parseTime parses a modification-time filter. Two forms are accepted:
+//   - an absolute date "2006-01-02" (compared at local midnight)
+//   - a relative age like "90d", "12w", "6m", "1y" (h/d/w/m/y = hours/days/
+//     weeks/months/years). For --min-time the cutoff is now-age (keep files
+//     newer than the age); for --max-time it is now-age (keep files older than
+//     the age). An empty string means "no filter".
+func parseTime(s string) (time.Time, error) {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return time.Time{}, nil
+	}
+	if t, err := time.ParseInLocation("2006-01-02", s, time.Local); err == nil {
+		return t, nil
+	}
+	if len(s) >= 2 {
+		unit := s[len(s)-1]
+		num := strings.TrimSpace(s[:len(s)-1])
+		if n, err := strconv.Atoi(num); err == nil && n >= 0 {
+			var d time.Duration
+			switch unit {
+			case 'h':
+				d = time.Duration(n) * time.Hour
+			case 'd':
+				d = time.Duration(n) * 24 * time.Hour
+			case 'w':
+				d = time.Duration(n) * 7 * 24 * time.Hour
+			case 'm':
+				d = time.Duration(n) * 30 * 24 * time.Hour
+			case 'y':
+				d = time.Duration(n) * 365 * 24 * time.Hour
+			default:
+				return time.Time{}, fmt.Errorf("无法解析时间 %q (用 2024-01-01 或 90d/12w/6m/1y)", s)
+			}
+			return time.Now().Add(-d), nil
+		}
+	}
+	return time.Time{}, fmt.Errorf("无法解析时间 %q (用 2024-01-01 或 90d/12w/6m/1y)", s)
 }
