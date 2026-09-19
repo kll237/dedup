@@ -124,6 +124,8 @@ dedup serve -addr 127.0.0.1:9000 -open=false
 
 ### 2) 终端扫描报告（真实输出，原样截取）
 
+![CLI 真实运行输出](docs/screenshots/cli-output.png)
+
 ```text
 扫描文件数: 8  总大小: 89.25 KB
 精确重复组: 1  (可节省 68 B)
@@ -168,9 +170,26 @@ dedup serve -addr 127.0.0.1:9000 -open=false
 
 `dedup -format html` 生成的 `demo/output/report.html` **内嵌了真实图片缩略图（base64）**。用浏览器打开它即可截图，作为真实效果证据：
 
+![HTML 报告真实效果](docs/screenshots/html-report.png)
+
 ```bash
 dedup -path demo/input -mode both -format html -out demo/output/report.html
 ```
+
+### 5) Web 可视化工作台（`dedup serve`）真实截图
+
+`dedup serve` 启动一个**零依赖**的 Web 仪表盘（前端资源通过 `go:embed` 打包进二进制），支持：选择扫描路径、按大小 / 修改时间过滤、调整相似阈值、查看精确重复、相似图片、扩展名统计、清理建议，以及一键删除 / 移入回收站。
+
+| 模块 | 截图 | 说明 |
+|---|---|---|
+| 工作台首页 | ![工作台首页](docs/screenshots/dashboard-initial.png) | 首次进入，默认扫描路径 `demo/input`，可一键开始扫描 |
+| 扫描进度 | ![扫描进度](docs/screenshots/scanning-progress.png) | 实时显示内容哈希与感知哈希计算进度 |
+| 扫描概览 | ![扫描概览](docs/screenshots/dashboard-overview.png) | 扫描完成后展示文件数、重复组、相似图片组、可节省空间与扩展名分布 |
+| 精确重复 | ![精确重复](docs/screenshots/dashboard-exact.png) | 按 SHA-256 分组的重复文件，可删除多余副本 |
+| 相似图片 | ![相似图片](docs/screenshots/dashboard-similar.png) | 按 dHash 汉明距离找到的近重复图片，展示缩略图与哈希距离 |
+| 扩展名统计 | ![扩展名统计](docs/screenshots/dashboard-ext-stats.png) | 按扩展名聚合文件数与大小，识别空间占用大户 |
+| 清理建议 | ![清理建议](docs/screenshots/dashboard-suggestions.png) | 基于规则推荐的临时文件、大文件、旧文件、重复文件 |
+| 高级过滤 | ![高级过滤](docs/screenshots/dashboard-advanced-filters.png) | 展开「高级建议设置」，支持自定义长期未用、大文件阈值等参数 |
 
 完整真实产物都在仓库 `demo/output/` / `demo/`：
 
