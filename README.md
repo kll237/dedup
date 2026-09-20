@@ -114,44 +114,9 @@ dedup serve -addr 127.0.0.1:9000 -open=false
 
 ## 效果演示
 
-> 全部截图与输出均来自**真实运行**：样例输入是真实照片（Lorem Picsum）+ 真实重复文本，二进制是仓库里 `dedup` 真实跑出来的结果，**可复现**（见末尾命令）。
+> 全部截图与输出均来自**真实运行**：对 `demo/input` 下真实重复文本与图片执行 `dedup` 得到，**可复现**（见末尾命令）。
 
-### 1) 输入样例（真实照片）
-
-三张均为真实照片：`a_original.jpg` 与 `b_near.jpg` 是同一张图的轻微缩放 + 提亮（近重复），`c_different.jpg` 是另一张不同照片：
-
-![输入样例图片（真实照片）](docs/assets/demo-input-photos.png)
-
-### 2) 终端扫描报告（真实输出，原样截取）
-
-![CLI 真实运行输出](docs/screenshots/cli-output.png)
-
-```text
-扫描文件数: 8  总大小: 89.25 KB
-精确重复组: 1  (可节省 68 B)
-相似图片组: 1
-
-===== 按扩展名统计 =====
-  .jpg  文件 3  共 89.12 KB
-  .txt  文件 3  共 102 B
-  .md   文件 1  共 19 B
-  .log  文件 1  共 13 B
-
-===== 精确重复 (按内容哈希) =====
-[1] 哈希 3e71900b…415a59ee  单文件 34 B  副本 3  可节省 68 B
-    - …\demo\input\note_a.txt
-    - …\demo\input\note_b.txt
-    - …\demo\input\sub\sub_note_c.txt
-
-===== 相似图片 (感知哈希) =====
-[1] 代表指纹 156262268f593d9e  张数 2
-    - …\demo\input\a_original.jpg  (25.12 KB)  156262268f593d9e
-    - …\demo\input\b_near.jpg     (37.35 KB)  13626626ac592d9e
-```
-
-`b_near.jpg` 与原图汉明距离仅 7（默认阈值 10 内），被判为相似；`c_different.jpg` 汉明距离很大，被正确排除。
-
-### 3) 安全删除预览 `-delete-similar -dry-run`（真实输出）
+### 1) 安全删除预览 `-delete-similar -dry-run`（真实输出）
 
 ```text
 [相似图片] 以下副本将被移入回收站(保留每组代表图):
@@ -166,7 +131,7 @@ dedup serve -addr 127.0.0.1:9000 -open=false
 计算感知哈希  [############################] 3/3 100%
 ```
 
-### 4) HTML 报告（真实产物，含真实缩略图）—— 可直接截图
+### 2) HTML 报告（真实产物，含真实缩略图）—— 可直接截图
 
 `dedup -format html` 生成的 `demo/output/report.html` **内嵌了真实图片缩略图（base64）**。用浏览器打开它即可截图，作为真实效果证据：
 
@@ -176,7 +141,7 @@ dedup serve -addr 127.0.0.1:9000 -open=false
 dedup -path demo/input -mode both -format html -out demo/output/report.html
 ```
 
-### 5) Web 可视化工作台（`dedup serve`）真实截图
+### 3) Web 可视化工作台（`dedup serve`）真实截图
 
 `dedup serve` 启动一个**零依赖**的 Web 仪表盘（前端资源通过 `go:embed` 打包进二进制），支持：选择扫描路径、按大小 / 修改时间过滤、调整相似阈值、查看精确重复、相似图片、扩展名统计、清理建议，以及一键删除 / 移入回收站。
 
@@ -199,7 +164,7 @@ dedup -path demo/input -mode both -format html -out demo/output/report.html
 |------|------|
 | `demo/output/report.html` | 真实 HTML 报告（带真实缩略图，浏览器打开即可截图） |
 | `demo/output/report.csv` | 真实 CSV 导出 |
-| `demo/output/stdout.txt` | 上面终端报告的完整原文 |
+| `demo/output/stdout.txt` | 完整终端扫描输出原文 |
 | `demo/output/delete_similar_preview.txt` | 删除预览原文 |
 | `demo/TEST_OUTPUT.txt` | `go test -v ./...` 真实测试通过输出 |
 
