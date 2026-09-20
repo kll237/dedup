@@ -189,6 +189,8 @@ dedup -path demo/input -mode both -format html -out demo/output/report.html
 | 相似图片 | ![相似图片](docs/screenshots/dashboard-similar.png) | 按 dHash 汉明距离找到的近重复图片，展示缩略图与哈希距离 |
 | 扩展名统计 | ![扩展名统计](docs/screenshots/dashboard-ext-stats.png) | 按扩展名聚合文件数与大小，识别空间占用大户 |
 | 清理建议 | ![清理建议](docs/screenshots/dashboard-suggestions.png) | 基于规则推荐的临时文件、大文件、旧文件、重复文件 |
+| 长期未使用文件 | ![长期未使用文件](docs/screenshots/dashboard-suggestions-unused.png) | 按「超过 N 天未修改」规则识别出的视频等长期未使用文件 |
+| 删除确认 | ![删除确认](docs/screenshots/dashboard-delete-confirm.png) | 一键清理前的二次确认弹窗，删除文件会移入回收站 |
 | 高级过滤 | ![高级过滤](docs/screenshots/dashboard-advanced-filters.png) | 展开「高级建议设置」，支持自定义长期未用、大文件阈值等参数 |
 
 完整真实产物都在仓库 `demo/output/` / `demo/`：
