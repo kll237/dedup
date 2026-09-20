@@ -114,9 +114,9 @@ dedup serve -addr 127.0.0.1:9000 -open=false
 
 ## 效果演示
 
-> 全部截图与输出均来自**真实运行**：对 `demo/input` 下真实重复文本与图片执行 `dedup` 得到，**可复现**（见末尾命令）。
+> 全部截图与输出均来自**实际运行**：对 `demo/input` 下重复文本与图片执行 `dedup` 得到，**可复现**（见末尾命令）。
 
-### 1) 安全删除预览 `-delete-similar -dry-run`（真实输出）
+### 1) 安全删除预览 `-delete-similar -dry-run`
 
 ```text
 [相似图片] 以下副本将被移入回收站(保留每组代表图):
@@ -131,17 +131,17 @@ dedup serve -addr 127.0.0.1:9000 -open=false
 计算感知哈希  [############################] 3/3 100%
 ```
 
-### 2) HTML 报告（真实产物，含真实缩略图）—— 可直接截图
+### 2) HTML 报告
 
-`dedup -format html` 生成的 `demo/output/report.html` **内嵌了真实图片缩略图（base64）**。用浏览器打开它即可截图，作为真实效果证据：
+`dedup -format html` 生成的 `demo/output/report.html` **内嵌了图片缩略图（base64）**。用浏览器打开它即可截图：
 
-![HTML 报告真实效果](docs/screenshots/html-report.png)
+![HTML 报告效果](docs/screenshots/html-report.png)
 
 ```bash
 dedup -path demo/input -mode both -format html -out demo/output/report.html
 ```
 
-### 3) Web 可视化工作台（`dedup serve`）真实截图
+### 3) Web 可视化工作台（`dedup serve`）截图
 
 `dedup serve` 启动一个**零依赖**的 Web 仪表盘（前端资源通过 `go:embed` 打包进二进制），支持：选择扫描路径、按大小 / 修改时间过滤、调整相似阈值、查看精确重复、相似图片、扩展名统计、清理建议，以及一键删除 / 移入回收站。
 
@@ -158,17 +158,17 @@ dedup -path demo/input -mode both -format html -out demo/output/report.html
 | 删除确认 | ![删除确认](docs/screenshots/dashboard-delete-confirm.png) | 一键清理前的二次确认弹窗，删除文件会移入回收站 |
 | 高级过滤 | ![高级过滤](docs/screenshots/dashboard-advanced-filters.png) | 展开「高级建议设置」，支持自定义长期未用、大文件阈值等参数 |
 
-完整真实产物都在仓库 `demo/output/` / `demo/`：
+完整产物都在仓库 `demo/output/` / `demo/`：
 
 | 文件 | 说明 |
 |------|------|
-| `demo/output/report.html` | 真实 HTML 报告（带真实缩略图，浏览器打开即可截图） |
-| `demo/output/report.csv` | 真实 CSV 导出 |
+| `demo/output/report.html` | HTML 报告（带缩略图，浏览器打开即可截图） |
+| `demo/output/report.csv` | CSV 导出 |
 | `demo/output/stdout.txt` | 完整终端扫描输出原文 |
 | `demo/output/delete_similar_preview.txt` | 删除预览原文 |
-| `demo/TEST_OUTPUT.txt` | `go test -v ./...` 真实测试通过输出 |
+| `demo/TEST_OUTPUT.txt` | `go test -v ./...` 测试通过输出 |
 
-### 单元测试（真实证据）
+### 单元测试
 
 ```text
 ok  	dedup/hash      (cached)
